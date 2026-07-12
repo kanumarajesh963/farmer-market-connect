@@ -17,12 +17,20 @@ const CROPS = [
   { name: 'Green Chilli', category: 'Vegetables', keyword: 'green-chilli' },
   { name: 'Bananas', category: 'Fruits', keyword: 'banana' },
   { name: 'Potatoes', category: 'Vegetables', keyword: 'potato' },
-  { name: 'Sunflower Seeds', category: 'Oilseeds', keyword: 'sunflower' },
   { name: 'Chickpeas', category: 'Pulses', keyword: 'chickpeas' },
   { name: 'Cotton', category: 'Grains', keyword: 'cotton-field' },
 ];
 
-const imageFor = (keyword) => `https://loremflickr.com/640/480/${keyword}?lock=${keyword.length}`;
+const CATEGORY_IMAGE = {
+  Vegetables: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/vegetables.svg',
+  Fruits: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/fruits.svg',
+  Grains: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/grains.svg',
+  Pulses: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/pulses.svg',
+  Spices: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/spices.svg',
+  Oilseeds: 'https://raw.githubusercontent.com/farmer-market-connect/assets/main/oilseeds.svg',
+};
+
+const imageFor = (category) => CATEGORY_IMAGE[category] ?? CATEGORY_IMAGE.Vegetables;
 
 const LOCATIONS = ['Nashik, MH', 'Guntur, AP', 'Karnal, HR', 'Erode, TN', 'Indore, MP', 'Kolar, KA'];
 const FARMERS = [
