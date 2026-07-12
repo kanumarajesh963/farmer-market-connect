@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <rect width="500" height="500" fill="#f1eaf7"/>
+  <circle cx="420" cy="90" r="46" fill="#f6d365"/>
+  <rect x="0" y="380" width="500" height="120" fill="#8a7350"/>
+  <path d="M150 380 Q140 260 190 200 Q240 150 300 140" stroke="#5b8a3f" stroke-width="8" fill="none"/>
+  <g fill="#7a5aa8">
+    <path d="M180 260 Q200 250 220 260 Q220 285 200 290 Q180 285 180 260 Z"/>
+    <circle cx="192" cy="266" r="8" fill="#9578c4"/>
+    <circle cx="206" cy="272" r="8" fill="#9578c4"/>
+  </g>
+  <g fill="#7a5aa8">
+    <path d="M230 210 Q250 200 270 210 Q270 235 250 240 Q230 235 230 210 Z"/>
+    <circle cx="242" cy="216" r="8" fill="#9578c4"/>
+    <circle cx="256" cy="222" r="8" fill="#9578c4"/>
+  </g>
+  <g fill="#7a5aa8">
+    <path d="M270 170 Q290 160 310 170 Q310 195 290 200 Q270 195 270 170 Z"/>
+    <circle cx="282" cy="176" r="8" fill="#9578c4"/>
+    <circle cx="296" cy="182" r="8" fill="#9578c4"/>
+  </g>
+  <text x="250" y="470" font-family="sans-serif" font-size="26" font-weight="700" fill="#4a3868" text-anchor="middle">Pulses</text>
+</svg>

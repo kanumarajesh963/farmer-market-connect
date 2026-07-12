@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <rect width="500" height="500" fill="#eaf3e1"/>
+  <circle cx="420" cy="90" r="46" fill="#f6d365"/>
+  <rect x="0" y="330" width="500" height="170" fill="#7a5230"/>
+  <rect x="0" y="310" width="500" height="30" fill="#8a6238"/>
+  <g>
+    <path d="M120 330 L120 240 Q120 210 140 210 Q160 210 160 240 L160 330 Z" fill="#e8853a"/>
+    <path d="M132 210 L128 170 M140 210 L140 165 M148 210 L152 170" stroke="#3f7d32" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M220 330 L220 250 Q220 220 240 220 Q260 220 260 250 L260 330 Z" fill="#e8853a"/>
+    <path d="M232 220 L228 178 M240 220 L240 172 M248 220 L252 178" stroke="#3f7d32" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <g>
+    <ellipse cx="340" cy="300" rx="45" ry="34" fill="#4f8f3b"/>
+    <ellipse cx="380" cy="315" rx="38" ry="28" fill="#5da145"/>
+  </g>
+  <text x="250" y="470" font-family="sans-serif" font-size="26" font-weight="700" fill="#2f4a26" text-anchor="middle">Vegetables</text>
+</svg>

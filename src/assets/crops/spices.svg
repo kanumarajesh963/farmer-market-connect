@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <rect width="500" height="500" fill="#fbeae6"/>
+  <circle cx="420" cy="90" r="46" fill="#f6d365"/>
+  <rect x="0" y="400" width="500" height="100" fill="#a1301f" opacity="0.15"/>
+  <line x1="120" y1="150" x2="380" y2="150" stroke="#6b4226" stroke-width="8" stroke-linecap="round"/>
+  <g>
+    <path d="M160 150 Q150 220 170 270 Q185 290 195 270 Q205 230 190 150 Z" fill="#d1442f"/>
+    <path d="M160 150 Q165 140 175 150" stroke="#3f7d32" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M230 150 Q215 240 240 300 Q255 320 265 300 Q280 240 265 150 Z" fill="#e05a34"/>
+    <path d="M230 150 Q237 138 248 150" stroke="#3f7d32" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M300 150 Q290 210 305 255 Q317 273 327 255 Q340 220 328 150 Z" fill="#d1442f"/>
+    <path d="M300 150 Q306 140 316 150" stroke="#3f7d32" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M360 150 Q350 200 362 235 Q372 250 380 235 Q390 205 380 150 Z" fill="#e05a34"/>
+    <path d="M360 150 Q365 141 373 150" stroke="#3f7d32" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <text x="250" y="470" font-family="sans-serif" font-size="26" font-weight="700" fill="#7a2313" text-anchor="middle">Spices</text>
+</svg>
