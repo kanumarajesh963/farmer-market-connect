@@ -21,6 +21,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import LockIcon from '@mui/icons-material/LockOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useRequestOtp, useVerifyOtp } from '../../api/hooks';
+import { useT } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { SELECTABLE_ROLES, type UserRole } from '../../types';
 import { toast } from 'sonner';
@@ -54,6 +55,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
 
+  const t = useT();
   const requestOtp = useRequestOtp();
   const verifyOtp = useVerifyOtp();
 
@@ -126,7 +128,7 @@ export default function LoginPage() {
               Farmer Market Connect
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
-              {step === 'phone' ? 'Sign in with your mobile number' : `Enter the code sent to +91 ${phone}`}
+              {step === 'phone' ? t('login_signin') : `Enter the code sent to +91 ${phone}`}
             </Typography>
           </Stack>
 
@@ -195,7 +197,7 @@ export default function LoginPage() {
                     disabled={requestOtp.isPending}
                     sx={{ py: 1.4 }}
                   >
-                    {requestOtp.isPending ? <CircularProgress size={22} color="inherit" /> : 'Send OTP'}
+                    {requestOtp.isPending ? <CircularProgress size={22} color="inherit" /> : t('send_otp')}
                   </Button>
                   <Typography variant="caption" color="text.secondary" align="center">
                     New here? Signing in creates your account automatically. If the number is already
@@ -238,10 +240,10 @@ export default function LoginPage() {
                     )}
                   />
                   <Button type="submit" variant="contained" size="large" disabled={verifyOtp.isPending} sx={{ py: 1.4 }}>
-                    {verifyOtp.isPending ? <CircularProgress size={22} color="inherit" /> : 'Verify & Continue'}
+                    {verifyOtp.isPending ? <CircularProgress size={22} color="inherit" /> : t('verify_continue')}
                   </Button>
                   <Button variant="text" onClick={() => setStep('phone')} sx={{ alignSelf: 'center' }}>
-                    Change number
+                    {t('change_number')}
                   </Button>
                 </Stack>
               </motion.form>

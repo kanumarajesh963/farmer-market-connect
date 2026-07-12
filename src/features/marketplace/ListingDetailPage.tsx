@@ -18,10 +18,13 @@ import {
   Alert,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackIosNew';
+import PlaceIcon from '@mui/icons-material/PlaceOutlined';
 import { useListing, useInterests, useCreateInterest } from '../../api/hooks';
 import StatusStamp from '../../components/ui/StatusStamp';
 import PriceTicker from '../../components/ui/PriceTicker';
+import ImageGallery from '../../components/ui/ImageGallery';
 import { useAuthStore } from '../../store/authStore';
+import { useT } from '../../i18n';
 
 const interestSchema = z.object({
   message: z.string().min(5, 'Say a little about what you need'),
@@ -36,6 +39,7 @@ export default function ListingDetailPage() {
   const { user } = useAuthStore();
   const canExpressInterest = user?.role === 'buyer' || user?.role === 'mediator';
   const createInterest = useCreateInterest(id);
+  const t = useT();
 
   const { control, handleSubmit, reset } = useForm<InterestForm>({
     resolver: zodResolver(interestSchema),
@@ -58,7 +62,7 @@ export default function ListingDetailPage() {
   return (
     <Box sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, sm: 3 } }}>
       <Button startIcon={<ArrowBackIcon sx={{ fontSize: 14 }} />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
-        Back to marketplace
+        {t('back_to_marketplace')}
       </Button>
 
       <Grid container spacing={3}>
@@ -71,8 +75,8 @@ export default function ListingDetailPage() {
             sx={{ borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
           >
             <Box sx={{ position: 'relative' }}>
-              <Box component="img" src={listing.imageUrl} alt={listing.cropName} sx={{ width: '100%', height: 320, objectFit: 'cover' }} />
-              <Box sx={{ position: 'absolute', top: 14, right: 14 }}>
+              <ImageGallery images={listing.images} alt={listing.cropName} height={320} />
+              <Box sx={{ position: 'absolute', top: 14, right: 14, pointerEvents: 'none' }}>
                 <StatusStamp status={listing.status} />
               </Box>
             </Box>
@@ -87,24 +91,44 @@ export default function ListingDetailPage() {
               <Typography variant="body2" color="text.secondary">
                 {listing.description}
               </Typography>
+              {listing.sellReason && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  <Typography component="span" variant="body2" color="text.secondary">{t('why_selling')}: </Typography>
+                  {listing.sellReason}
+                </Typography>
+              )}
               <Divider sx={{ my: 2 }} />
               <Grid container spacing={2}>
                 <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">Quantity</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('quantity')}</Typography>
                   <Typography variant="body1" fontWeight={600}>{listing.quantity} {listing.unit}</Typography>
                 </Grid>
                 <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">Location</Typography>
-                  <Typography variant="body1" fontWeight={600}>{listing.location}</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('location')}</Typography>
+                  <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                    <Typography variant="body1" fontWeight={600}>{listing.location}</Typography>
+                    {listing.locationUrl && (
+                      <Button
+                        size="small"
+                        href={listing.locationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        startIcon={<PlaceIcon sx={{ fontSize: 14 }} />}
+                        sx={{ minWidth: 0, py: 0 }}
+                      >
+                        {t('get_directions')}
+                      </Button>
+                    )}
+                  </Stack>
                 </Grid>
                 <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">Harvest date</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('harvest_date')}</Typography>
                   <Typography variant="body1" fontWeight={600}>
                     {new Date(listing.harvestDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </Typography>
                 </Grid>
                 <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">Farmer</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('farmer')}</Typography>
                   <Typography variant="body1" fontWeight={600}>{listing.farmerName}</Typography>
                 </Grid>
               </Grid>
@@ -113,7 +137,7 @@ export default function ListingDetailPage() {
 
           <Paper component="form" onSubmit={onSubmit} elevation={0} sx={{ mt: 3, p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
-              Express interest
+              {t('express_interest')}
             </Typography>
             {canExpressInterest ? (
               <>
@@ -133,7 +157,7 @@ export default function ListingDetailPage() {
                   )}
                 />
                 <Button type="submit" variant="contained" sx={{ mt: 1.5 }} disabled={createInterest.isPending}>
-                  {createInterest.isPending ? 'Sending…' : 'Send to farmer'}
+                  {createInterest.isPending ? 'Sending…' : t('send_to_farmer')}
                 </Button>
               </>
             ) : (
@@ -149,7 +173,7 @@ export default function ListingDetailPage() {
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" sx={{ mb: 2 }}>
-              Interested buyers ({interests?.length ?? 0})
+              {t('interested_buyers')} ({interests?.length ?? 0})
             </Typography>
             <Stack spacing={2}>
               {interests?.map((i) => (

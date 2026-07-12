@@ -12,7 +12,15 @@ export interface User {
   email?: string;
   location: string;
   avatarColor: string;
+  // Populated by the backend when available. Optional because this app's
+  // current API doesn't emit them yet — the UI degrades gracefully to "—"
+  // wherever these are missing instead of guessing.
+  lastLoginAt?: string;
+  loginCount?: number;
+  createdAt?: string;
 }
+
+export type SupportedLanguage = 'en' | 'hi' | 'te';
 
 export type ListingStatus = 'available' | 'reserved' | 'sold';
 export type CropCategory =
@@ -33,13 +41,21 @@ export interface CropListing {
   pricePerUnit: number;
   harvestDate: string;
   location: string;
+  // Optional map link (Google Maps / Plus Code / any URL) pointing at the
+  // farm or pickup point, shown as a "Get directions" link on the listing.
+  locationUrl?: string;
   status: ListingStatus;
-  imageUrl: string;
+  // One or more photos of the crop. images[0] is the cover photo shown on
+  // cards; the full set is shown in the gallery on the detail page.
+  images: string[];
   farmerName: string;
   farmerId: string;
   interestedCount: number;
   postedAt: string;
   description?: string;
+  // Why the farmer is selling this batch (surplus, end of season, etc.) —
+  // shown on the listing and on the farmer's profile.
+  sellReason?: string;
 }
 
 export interface BuyerInterest {
@@ -60,4 +76,13 @@ export interface PesticidePrice {
   pricePerUnit: number;
   unit: string;
   updatedAt: string;
+  // Richer detail fields for the pesticide detail page. Optional because
+  // the current API doesn't return them yet — the detail page falls back
+  // to general safety guidance when a product doesn't have these.
+  imageUrl?: string;
+  activeIngredient?: string;
+  manufacturer?: string;
+  dosage?: string;
+  usageNotes?: string;
+  safetyNotes?: string;
 }
