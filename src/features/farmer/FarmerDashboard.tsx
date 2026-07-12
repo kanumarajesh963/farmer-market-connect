@@ -39,7 +39,7 @@ function StatCard({ label, value, delay }: { label: string; value: string | numb
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       elevation={0}
-      sx={{ p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}
+      sx={{ p: 2.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
     >
       <Typography variant="caption" color="text.secondary">
         {label}
@@ -109,7 +109,7 @@ export default function FarmerDashboard() {
         </Grid>
       </Grid>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -137,6 +137,7 @@ export default function FarmerDashboard() {
                 key={l.id}
                 component={motion.tr}
                 whileHover={{ backgroundColor: 'rgba(46,94,62,0.04)' }}
+                onClick={() => navigate(`/listing/${l.id}`)}
                 sx={{ cursor: 'pointer' }}
               >
                 <TableCell>
@@ -163,7 +164,14 @@ export default function FarmerDashboard() {
                   <StatusStamp status={l.status} />
                 </TableCell>
                 <TableCell align="right">
-                  <MoreVertIcon fontSize="small" sx={{ cursor: 'pointer' }} onClick={(e) => openMenu(e, l)} />
+                  <MoreVertIcon
+                    fontSize="small"
+                    sx={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openMenu(e, l);
+                    }}
+                  />
                 </TableCell>
               </TableRow>
             ))}

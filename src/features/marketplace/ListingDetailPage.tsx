@@ -50,7 +50,7 @@ export default function ListingDetailPage() {
   if (isLoading || !listing) {
     return (
       <Box sx={{ maxWidth: 1000, mx: 'auto', p: 3 }}>
-        <Skeleton height={340} sx={{ borderRadius: 3 }} />
+        <Skeleton height={340} sx={{ borderRadius: 1 }} />
       </Box>
     );
   }
@@ -68,7 +68,7 @@ export default function ListingDetailPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             elevation={0}
-            sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+            sx={{ borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
           >
             <Box sx={{ position: 'relative' }}>
               <Box component="img" src={listing.imageUrl} alt={listing.cropName} sx={{ width: '100%', height: 320, objectFit: 'cover' }} />
@@ -111,7 +111,7 @@ export default function ListingDetailPage() {
             </Box>
           </Paper>
 
-          <Paper component="form" onSubmit={onSubmit} elevation={0} sx={{ mt: 3, p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+          <Paper component="form" onSubmit={onSubmit} elevation={0} sx={{ mt: 3, p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
               Express interest
             </Typography>
@@ -147,7 +147,7 @@ export default function ListingDetailPage() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" sx={{ mb: 2 }}>
               Interested buyers ({interests?.length ?? 0})
             </Typography>

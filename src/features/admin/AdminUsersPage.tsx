@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
         Changes apply instantly: the affected person's app updates in realtime over their open connection.
       </Alert>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
         <Table>
           <TableHead>
             <TableRow>

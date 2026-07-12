@@ -26,23 +26,35 @@ const shared: ThemeOptions = {
     h6: { fontFamily: '"Fraunces", serif', fontWeight: 600 },
     button: { fontWeight: 600, textTransform: 'none' as const, letterSpacing: '0.01em' },
   },
-  shape: { borderRadius: 12 },
+  shape: { borderRadius: 16 },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 10, paddingInline: 20, paddingBlock: 10 },
+        root: { borderRadius: 12, paddingInline: 20, paddingBlock: 10 },
       },
     },
     MuiPaper: {
-      styleOverrides: { root: { backgroundImage: 'none' } },
+      styleOverrides: { root: { backgroundImage: 'none', borderRadius: 16 } },
     },
     MuiTextField: {
       defaultProps: { size: 'medium' },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: { root: { borderRadius: 16 } },
     },
     MuiCard: {
       styleOverrides: {
         root: { borderRadius: 16, transition: 'transform 180ms ease, box-shadow 180ms ease' },
       },
+    },
+    MuiDialog: {
+      styleOverrides: { paper: { borderRadius: 16 } },
+    },
+    MuiMenu: {
+      styleOverrides: { paper: { borderRadius: 16 } },
+    },
+    MuiAlert: {
+      styleOverrides: { root: { borderRadius: 16 } },
     },
   },
 };

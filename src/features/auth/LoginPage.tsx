@@ -106,7 +106,7 @@ export default function LoginPage() {
       }}
     >
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
-        <Paper elevation={0} sx={{ width: 400, maxWidth: '92vw', p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ width: 400, maxWidth: '92vw', p: 4, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Stack spacing={0.5} alignItems="center" sx={{ mb: 3 }}>
             <Box
               sx={{

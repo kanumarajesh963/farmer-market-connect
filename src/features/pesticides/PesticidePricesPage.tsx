@@ -113,7 +113,7 @@ export default function PesticidePricesPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               elevation={0}
-              sx={{ p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}
+              sx={{ p: 2.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>

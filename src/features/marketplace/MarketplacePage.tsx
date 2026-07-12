@@ -147,7 +147,7 @@ export default function MarketplacePage() {
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
         />
         {isMobile && (
-          <IconButton onClick={() => setFiltersOpen(true)} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <IconButton onClick={() => setFiltersOpen(true)} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
             <TuneIcon />
           </IconButton>
         )}
@@ -156,7 +156,7 @@ export default function MarketplacePage() {
       <Grid container spacing={3}>
         {!isMobile && (
           <Grid size={{ sm: 3 }}>
-            <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 3, position: 'sticky', top: 16 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, position: 'sticky', top: 16 }}>
               <Typography variant="subtitle2" sx={{ mb: 2 }}>
                 Filters
               </Typography>

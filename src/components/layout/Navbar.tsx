@@ -49,7 +49,7 @@ export default function Navbar() {
               sx={{
                 px: 1.5,
                 py: 0.8,
-                borderRadius: 2,
+                borderRadius: 1,
                 cursor: 'pointer',
                 fontSize: 14,
                 fontWeight: 600,

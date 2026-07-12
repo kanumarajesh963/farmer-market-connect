@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,6 +42,46 @@ const categoryKeywords: Record<CropCategory, string[]> = {
 const sampleImagesFor = (category: CropCategory) =>
   categoryKeywords[category].map((kw) => `https://loremflickr.com/400/400/${kw}?lock=${kw.length + category.length}`);
 
+const MAX_UPLOAD_BYTES = 6 * 1024 * 1024; // 6MB raw file limit before we even try to read it
+
+// Reads a photo straight from the farmer's device (camera roll or camera),
+// downsizes it in the browser so the payload stays reasonable, and returns a
+// data URL that's ready to submit — no third-party storage account needed.
+function readImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Please choose an image file (JPG, PNG, WEBP).'));
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      reject(new Error('That photo is too large — please choose one under 6MB.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read that photo. Try another one.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not read that photo. Try another one.'));
+      img.onload = () => {
+        const maxDim = 1000;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const schema = z.object({
   cropName: z.string().min(2, 'Enter the crop name'),
   category: z.enum(['Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'] as const),
@@ -60,6 +100,9 @@ const steps = ['Crop details', 'Quantity & price', 'Photo & review'];
 
 export default function CropListingForm() {
   const [activeStep, setActiveStep] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const createListing = useCreateListing();
 
@@ -132,7 +175,7 @@ export default function CropListingForm() {
         ))}
       </Stepper>
 
-      <Paper component="form" onSubmit={onSubmit} elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+      <Paper component="form" onSubmit={onSubmit} elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 1, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <AnimatePresence mode="wait" custom={activeStep}>
           {activeStep === 0 && (
             <motion.div key="step0" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.28 }}>
@@ -238,36 +281,117 @@ export default function CropListingForm() {
                 <Controller
                   name="imageUrl"
                   control={control}
-                  render={({ field, fieldState }) => (
-                    <Box>
-                      <Typography variant="body2" sx={{ mb: 1 }} color={fieldState.error ? 'error' : 'text.secondary'}>
-                        <UploadIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                        Choose a sample photo (demo — uploads connect to Cloudinary in production)
-                      </Typography>
-                      <Stack direction="row" spacing={1.5}>
-                        {sampleImagesFor(values.category).map((img) => (
+                  render={({ field, fieldState }) => {
+                    const isUploaded = field.value?.startsWith('data:');
+                    const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = ''; // allow re-selecting the same file later
+                      if (!file) return;
+                      setUploadError(null);
+                      setUploading(true);
+                      try {
+                        const dataUrl = await readImageFile(file);
+                        field.onChange(dataUrl);
+                      } catch (err) {
+                        setUploadError(err instanceof Error ? err.message : 'Could not use that photo.');
+                      } finally {
+                        setUploading(false);
+                      }
+                    };
+
+                    return (
+                      <Box>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          hidden
+                          onChange={onPickFile}
+                        />
+                        <Typography variant="body2" sx={{ mb: 1 }} color={fieldState.error ? 'error' : 'text.secondary'}>
+                          Add a photo of your crop
+                        </Typography>
+
+                        <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2, flexWrap: 'wrap' }}>
                           <Box
-                            key={img}
                             component={motion.div}
-                            whileHover={{ scale: 1.04 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => field.onChange(img)}
+                            whileHover={{ scale: 1.02 }}
+                            onClick={() => fileInputRef.current?.click()}
                             sx={{
-                              width: 88,
-                              height: 88,
-                              borderRadius: 3,
+                              width: 96,
+                              height: 96,
+                              borderRadius: 1,
                               overflow: 'hidden',
                               cursor: 'pointer',
-                              border: field.value === img ? '3px solid' : '1px solid',
-                              borderColor: field.value === img ? 'primary.main' : 'divider',
+                              border: isUploaded ? '3px solid' : '1px dashed',
+                              borderColor: isUploaded ? 'primary.main' : 'divider',
+                              display: 'grid',
+                              placeItems: 'center',
+                              bgcolor: 'action.hover',
+                              flexShrink: 0,
                             }}
                           >
-                            <Avatar src={img} variant="square" sx={{ width: '100%', height: '100%' }} />
+                            {isUploaded ? (
+                              <Avatar src={field.value} variant="square" sx={{ width: '100%', height: '100%' }} />
+                            ) : (
+                              <Stack alignItems="center" spacing={0.5}>
+                                <UploadIcon color="action" />
+                                <Typography variant="caption" color="text.secondary">
+                                  {uploading ? 'Reading…' : 'Upload'}
+                                </Typography>
+                              </Stack>
+                            )}
                           </Box>
-                        ))}
-                      </Stack>
-                    </Box>
-                  )}
+                          <Stack spacing={0.5} justifyContent="center">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<UploadIcon fontSize="small" />}
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={uploading}
+                            >
+                              {isUploaded ? 'Replace photo' : 'Take or choose a photo'}
+                            </Button>
+                            <Typography variant="caption" color="text.secondary">
+                              From your camera or gallery, up to 6MB.
+                            </Typography>
+                            {uploadError && (
+                              <Typography variant="caption" color="error">
+                                {uploadError}
+                              </Typography>
+                            )}
+                          </Stack>
+                        </Stack>
+
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                          Or pick a placeholder instead:
+                        </Typography>
+                        <Stack direction="row" spacing={1.5}>
+                          {sampleImagesFor(values.category).map((img) => (
+                            <Box
+                              key={img}
+                              component={motion.div}
+                              whileHover={{ scale: 1.04 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => field.onChange(img)}
+                              sx={{
+                                width: 72,
+                                height: 72,
+                                borderRadius: 1,
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                border: field.value === img ? '3px solid' : '1px solid',
+                                borderColor: field.value === img ? 'primary.main' : 'divider',
+                              }}
+                            >
+                              <Avatar src={img} variant="square" sx={{ width: '100%', height: '100%' }} />
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  }}
                 />
                 <Controller
                   name="description"
@@ -275,7 +399,7 @@ export default function CropListingForm() {
                   render={({ field }) => <TextField {...field} label="Notes for buyers (optional)" multiline minRows={2} fullWidth />}
                 />
 
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: 'action.hover' }}>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, bgcolor: 'action.hover' }}>
                   <Typography variant="caption" color="text.secondary">
                     Preview
                   </Typography>
