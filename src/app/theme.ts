@@ -76,8 +76,10 @@ export const darkTheme = createTheme({
   ...shared,
   palette: {
     mode: 'dark',
-    primary: { main: tokens.gold500, dark: '#C4871F', light: tokens.gold400, contrastText: tokens.ink },
-    secondary: { main: tokens.green500, contrastText: '#fff' },
+    // Same field-green identity as light mode, just lightened so it holds
+    // contrast on a dark background — green stays primary in both modes.
+    primary: { main: tokens.green500, dark: tokens.green600, light: '#5C9E73', contrastText: '#0B140E' },
+    secondary: { main: tokens.gold400, dark: tokens.gold500, contrastText: tokens.ink },
     error: { main: '#E8624C' },
     background: { default: tokens.paperDark, paper: '#17221B' },
     text: { primary: '#EDF2ED', secondary: '#9FB0A6' },

@@ -29,20 +29,17 @@ import type { CropCategory, QuantityUnit } from '../../types';
 
 const categories: CropCategory[] = ['Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
 
-// Sample photo keywords per category so the picker always shows images that
-// actually match what's being listed, instead of 3 fixed unrelated photos.
-const categoryKeywords: Record<CropCategory, string[]> = {
-  Vegetables: ['vegetables', 'fresh-vegetables', 'farm-vegetables'],
-  Fruits: ['fruits', 'fresh-fruits', 'orchard'],
-  Grains: ['grains', 'wheat-field', 'rice-paddy'],
-  Pulses: ['lentils', 'pulses', 'legumes'],
-  Spices: ['spices', 'indian-spices', 'chilli'],
-  Oilseeds: ['peanut', 'sunflower', 'oilseeds'],
-};
-const sampleImagesFor = (category: CropCategory) =>
-  categoryKeywords[category].map((kw) => `https://loremflickr.com/400/400/${kw}?lock=${kw.length + category.length}`);
-
+const MAX_IMAGES = 8;
 const MAX_UPLOAD_BYTES = 6 * 1024 * 1024; // 6MB raw file limit before we even try to read it
+
+// Suggests a photo keyed off the actual crop name typed in (e.g. "Alphonso
+// Mangoes"), not just its broad category, so the suggestion actually looks
+// like the product. Falls back to the category if the name is too short.
+function suggestedImageFor(cropName: string, category: CropCategory): string {
+  const slug = cropName.trim().length >= 3 ? cropName.trim() : category;
+  const kw = encodeURIComponent(slug.toLowerCase().replace(/\s+/g, '-'));
+  return `https://loremflickr.com/500/500/${kw}?lock=${slug.length + category.length}`;
+}
 
 // Reads a photo straight from the farmer's device (camera roll or camera),
 // downsizes it in the browser so the payload stays reasonable, and returns a
@@ -90,8 +87,10 @@ const schema = z.object({
   pricePerUnit: z.coerce.number().positive('Enter an expected price'),
   harvestDate: z.date({ message: 'Select the harvest date' }),
   location: z.string().min(2, 'Enter your location'),
+  locationUrl: z.string().url('Enter a valid link (e.g. a Google Maps link)').optional().or(z.literal('')),
   description: z.string().max(300).optional(),
-  imageUrl: z.string().min(1, 'Pick a sample photo'),
+  sellReason: z.string().max(200).optional(),
+  images: z.array(z.string()).min(1, 'Add at least one photo'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -102,6 +101,7 @@ export default function CropListingForm() {
   const [activeStep, setActiveStep] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [urlDraft, setUrlDraft] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const createListing = useCreateListing();
@@ -123,15 +123,17 @@ export default function CropListingForm() {
       pricePerUnit: undefined,
       harvestDate: undefined,
       location: '',
+      locationUrl: '',
       description: '',
-      imageUrl: '',
+      sellReason: '',
+      images: [],
     },
   });
 
   const fieldsByStep: (keyof FormValues)[][] = [
-    ['cropName', 'category', 'location'],
+    ['cropName', 'category', 'location', 'locationUrl'],
     ['quantity', 'unit', 'pricePerUnit', 'harvestDate'],
-    ['imageUrl'],
+    ['images'],
   ];
 
   const next = async () => {
@@ -149,9 +151,11 @@ export default function CropListingForm() {
       pricePerUnit: data.pricePerUnit,
       harvestDate: data.harvestDate.toISOString(),
       location: data.location,
+      locationUrl: data.locationUrl || undefined,
       status: 'available',
-      imageUrl: data.imageUrl,
+      images: data.images,
       description: data.description,
+      sellReason: data.sellReason || undefined,
     });
     navigate('/dashboard');
   });
@@ -205,6 +209,20 @@ export default function CropListingForm() {
                   control={control}
                   render={({ field, fieldState }) => (
                     <TextField {...field} label="Location" placeholder="e.g. Nashik, Maharashtra" fullWidth error={!!fieldState.error} helperText={fieldState.error?.message ?? ' '} />
+                  )}
+                />
+                <Controller
+                  name="locationUrl"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      label="Farm location link (optional)"
+                      placeholder="Paste a Google Maps link so buyers can get directions"
+                      fullWidth
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message ?? ' '}
+                    />
                   )}
                 />
               </Stack>
@@ -279,21 +297,43 @@ export default function CropListingForm() {
             <motion.div key="step2" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.28 }}>
               <Stack spacing={2.5}>
                 <Controller
-                  name="imageUrl"
+                  name="images"
                   control={control}
                   render={({ field, fieldState }) => {
-                    const isUploaded = field.value?.startsWith('data:');
-                    const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = ''; // allow re-selecting the same file later
-                      if (!file) return;
+                    const images = field.value ?? [];
+
+                    const addImages = (urls: string[]) => {
+                      const room = MAX_IMAGES - images.length;
+                      if (room <= 0) {
+                        setUploadError(`You can add up to ${MAX_IMAGES} photos.`);
+                        return;
+                      }
+                      field.onChange([...images, ...urls.slice(0, room)]);
+                    };
+
+                    const removeImage = (idx: number) => {
+                      field.onChange(images.filter((_, i) => i !== idx));
+                    };
+
+                    // Bulk upload: every file picked at once is read and
+                    // appended, so a farmer can select their whole batch of
+                    // photos in one go instead of one at a time.
+                    const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const files = Array.from(e.target.files ?? []);
+                      e.target.value = ''; // allow re-selecting the same files later
+                      if (files.length === 0) return;
                       setUploadError(null);
                       setUploading(true);
                       try {
-                        const dataUrl = await readImageFile(file);
-                        field.onChange(dataUrl);
+                        const room = MAX_IMAGES - images.length;
+                        const toRead = files.slice(0, room);
+                        if (files.length > toRead.length) {
+                          setUploadError(`Only added ${toRead.length} of ${files.length} photos — limit is ${MAX_IMAGES}.`);
+                        }
+                        const dataUrls = await Promise.all(toRead.map(readImageFile));
+                        addImages(dataUrls);
                       } catch (err) {
-                        setUploadError(err instanceof Error ? err.message : 'Could not use that photo.');
+                        setUploadError(err instanceof Error ? err.message : 'Could not use one of those photos.');
                       } finally {
                         setUploading(false);
                       }
@@ -305,93 +345,131 @@ export default function CropListingForm() {
                           ref={fileInputRef}
                           type="file"
                           accept="image/*"
-                          capture="environment"
+                          multiple
                           hidden
-                          onChange={onPickFile}
+                          onChange={onPickFiles}
                         />
                         <Typography variant="body2" sx={{ mb: 1 }} color={fieldState.error ? 'error' : 'text.secondary'}>
-                          Add a photo of your crop
+                          Add photos of your crop ({images.length}/{MAX_IMAGES})
                         </Typography>
 
-                        <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2, flexWrap: 'wrap' }}>
-                          <Box
-                            component={motion.div}
-                            whileHover={{ scale: 1.02 }}
-                            onClick={() => fileInputRef.current?.click()}
-                            sx={{
-                              width: 96,
-                              height: 96,
-                              borderRadius: 1,
-                              overflow: 'hidden',
-                              cursor: 'pointer',
-                              border: isUploaded ? '3px solid' : '1px dashed',
-                              borderColor: isUploaded ? 'primary.main' : 'divider',
-                              display: 'grid',
-                              placeItems: 'center',
-                              bgcolor: 'action.hover',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {isUploaded ? (
-                              <Avatar src={field.value} variant="square" sx={{ width: '100%', height: '100%' }} />
-                            ) : (
-                              <Stack alignItems="center" spacing={0.5}>
-                                <UploadIcon color="action" />
-                                <Typography variant="caption" color="text.secondary">
-                                  {uploading ? 'Reading…' : 'Upload'}
-                                </Typography>
-                              </Stack>
-                            )}
-                          </Box>
-                          <Stack spacing={0.5} justifyContent="center">
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<UploadIcon fontSize="small" />}
-                              onClick={() => fileInputRef.current?.click()}
-                              disabled={uploading}
-                            >
-                              {isUploaded ? 'Replace photo' : 'Take or choose a photo'}
-                            </Button>
-                            <Typography variant="caption" color="text.secondary">
-                              From your camera or gallery, up to 6MB.
-                            </Typography>
-                            {uploadError && (
-                              <Typography variant="caption" color="error">
-                                {uploadError}
-                              </Typography>
-                            )}
+                        {images.length > 0 && (
+                          <Stack direction="row" spacing={1.5} sx={{ mb: 2, overflowX: 'auto', pb: 0.5 }}>
+                            {images.map((img, idx) => (
+                              <Box
+                                key={idx}
+                                component={motion.div}
+                                initial={{ opacity: 0, scale: 0.85 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                sx={{
+                                  position: 'relative',
+                                  width: 84,
+                                  height: 84,
+                                  borderRadius: 1,
+                                  overflow: 'hidden',
+                                  flexShrink: 0,
+                                  border: idx === 0 ? '3px solid' : '1px solid',
+                                  borderColor: idx === 0 ? 'primary.main' : 'divider',
+                                }}
+                              >
+                                <Avatar src={img} variant="square" sx={{ width: '100%', height: '100%' }} />
+                                {idx === 0 && (
+                                  <Chip
+                                    label="Cover"
+                                    size="small"
+                                    sx={{ position: 'absolute', bottom: 2, left: 2, height: 18, fontSize: 10, bgcolor: 'primary.main', color: 'primary.contrastText' }}
+                                  />
+                                )}
+                                <Box
+                                  onClick={() => removeImage(idx)}
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    right: 2,
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: '50%',
+                                    bgcolor: 'rgba(0,0,0,0.6)',
+                                    color: '#fff',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  ✕
+                                </Box>
+                              </Box>
+                            ))}
                           </Stack>
-                        </Stack>
+                        )}
 
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                          Or pick a placeholder instead:
-                        </Typography>
-                        <Stack direction="row" spacing={1.5}>
-                          {sampleImagesFor(values.category).map((img) => (
-                            <Box
-                              key={img}
-                              component={motion.div}
-                              whileHover={{ scale: 1.04 }}
-                              whileTap={{ scale: 0.97 }}
-                              onClick={() => field.onChange(img)}
-                              sx={{
-                                width: 72,
-                                height: 72,
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                cursor: 'pointer',
-                                border: field.value === img ? '3px solid' : '1px solid',
-                                borderColor: field.value === img ? 'primary.main' : 'divider',
-                              }}
-                            >
-                              <Avatar src={img} variant="square" sx={{ width: '100%', height: '100%' }} />
-                            </Box>
-                          ))}
+                        <Stack direction="row" spacing={1.5} sx={{ mb: 2, flexWrap: 'wrap' }} useFlexGap>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<UploadIcon fontSize="small" />}
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading || images.length >= MAX_IMAGES}
+                          >
+                            {uploading ? 'Reading…' : 'Upload photos'}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => addImages([suggestedImageFor(values.cropName, values.category)])}
+                            disabled={images.length >= MAX_IMAGES}
+                          >
+                            Suggest a photo for {values.cropName || 'this crop'}
+                          </Button>
                         </Stack>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                          Select several at once from your camera or gallery, up to 6MB each.
+                        </Typography>
+
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Or paste a photo link"
+                          placeholder="https://…"
+                          value={urlDraft}
+                          onChange={(e) => setUrlDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && urlDraft.trim()) {
+                              e.preventDefault();
+                              addImages([urlDraft.trim()]);
+                              setUrlDraft('');
+                            }
+                          }}
+                          helperText="Press Enter to add the link as a photo"
+                          sx={{ mb: 1 }}
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!urlDraft.trim() || images.length >= MAX_IMAGES}
+                          onClick={() => {
+                            addImages([urlDraft.trim()]);
+                            setUrlDraft('');
+                          }}
+                        >
+                          Add photo link
+                        </Button>
+
+                        {(uploadError || fieldState.error) && (
+                          <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+                            {uploadError ?? fieldState.error?.message}
+                          </Typography>
+                        )}
                       </Box>
                     );
                   }}
+                />
+                <Controller
+                  name="sellReason"
+                  control={control}
+                  render={({ field }) => <TextField {...field} label="Why are you selling? (optional)" placeholder="e.g. surplus after home use, end of season" fullWidth />}
                 />
                 <Controller
                   name="description"

@@ -23,7 +23,14 @@ export default function CropCard({ listing, onOpen }: { listing: CropListing; on
       elevation={0}
     >
       <Box sx={{ position: 'relative' }}>
-        <CardMedia component="img" height="150" image={listing.imageUrl} alt={listing.cropName} />
+        <CardMedia component="img" height="150" image={listing.images[0]} alt={listing.cropName} />
+        {listing.images.length > 1 && (
+          <Chip
+            size="small"
+            label={`+${listing.images.length - 1} photos`}
+            sx={{ position: 'absolute', bottom: 8, left: 8, bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', height: 22 }}
+          />
+        )}
         <Box sx={{ position: 'absolute', top: 10, right: 10 }}>
           <StatusStamp status={listing.status} />
         </Box>
