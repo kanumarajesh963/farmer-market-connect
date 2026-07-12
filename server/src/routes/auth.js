@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { issueOtp, verifyOtp } from '../otpStore.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
+import { sendOtpSms } from '../smsProvider.js';
 
 const router = Router();
 
@@ -18,15 +19,16 @@ router.post('/request-otp', async (req, res) => {
   }
   const otp = issueOtp(phone);
 
-  // No SMS gateway is configured yet (Twilio / MSG91 / etc). We log the OTP
-  // server-side so you can watch it arrive in real time, and — only outside
-  // production — echo it back in the response so the demo works end to end
-  // without a paid SMS provider.
-  console.log(`📲 OTP for +91 ${phone}: ${otp} (valid 5 min)`);
+  // Sends a real SMS if FAST2SMS_API_KEY is configured; otherwise logs the
+  // OTP to the console so testing still works without any SMS account.
+  const result = await sendOtpSms(phone, otp);
 
   res.json({
     sent: true,
-    ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
+    // Only ever echo the code back when it wasn't actually delivered by SMS,
+    // and never in production — keeps prod secure once a real key is set,
+    // while still letting you test before you have one.
+    ...(process.env.NODE_ENV !== 'production' && !result.delivered ? { devOtp: otp } : {}),
   });
 });
 
