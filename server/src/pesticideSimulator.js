@@ -10,8 +10,7 @@ export function startPesticideSimulator(io, intervalMs = 6000) {
       for (const row of rows) {
         // +/- up to 3% drift, floor at 1 so prices never go to 0 or negative
         const result = await pool.query(
-          `UPDATE pesticide_prices
-           SET price_per_unit = GREATEST(1, ROUND(price_per_unit * (1 + (random() * 0.06 - 0.03)), 2)),
+          `UPDATE pesticide_prices SET price_per_unit = ROUND((price_per_unit * 1.02)::numeric, 2)),
                updated_at = now()
            WHERE id = $1
            RETURNING *`,
