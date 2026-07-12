@@ -7,9 +7,7 @@ import ListingDetailPage from './features/marketplace/ListingDetailPage';
 import FarmerDashboard from './features/farmer/FarmerDashboard';
 import CropListingForm from './features/farmer/CropListingForm';
 import PesticidePricesPage from './features/pesticides/PesticidePricesPage';
-import PesticideDetailPage from './features/pesticides/PesticideDetailPage';
 import AdminUsersPage from './features/admin/AdminUsersPage';
-import ProfilePage from './features/profile/ProfilePage';
 
 export default function App() {
   return (
@@ -22,8 +20,6 @@ export default function App() {
           <Route path="/marketplace" element={<MarketplacePage />} />
           <Route path="/listing/:id" element={<ListingDetailPage />} />
           <Route path="/pesticides" element={<PesticidePricesPage />} />
-          <Route path="/pesticides/:id" element={<PesticideDetailPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 

@@ -15,12 +15,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/ScienceOutlined';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { usePesticidePrices } from '../../api/hooks';
 import PriceTicker from '../../components/ui/PriceTicker';
 import { useAuthStore } from '../../store/authStore';
 import { getSocket } from '../../lib/socket';
-import { useT } from '../../i18n';
 import type { CropCategory, PesticidePrice } from '../../types';
 
 const crops: (CropCategory | 'All')[] = ['All', 'Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
@@ -31,8 +29,6 @@ export default function PesticidePricesPage() {
   const { data, isLoading } = usePesticidePrices(crop);
   const token = useAuthStore((s) => s.token);
   const qc = useQueryClient();
-  const navigate = useNavigate();
-  const t = useT();
 
   // Realtime: the server nudges a few prices every few seconds to simulate a
   // live market feed. We merge each update straight into the cached list so
@@ -63,7 +59,7 @@ export default function PesticidePricesPage() {
     <Box sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, sm: 3 } }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.5 }}>
         <ScienceIcon color="primary" />
-        <Typography variant="h4">{t('pesticides_title')}</Typography>
+        <Typography variant="h4">Pesticide prices</Typography>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
         <Box
@@ -73,14 +69,14 @@ export default function PesticidePricesPage() {
           sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', display: 'inline-block' }}
         />
         <Typography variant="body2" color="text.secondary">
-          {t('pesticides_live')}
+          Live market feed — prices update automatically every few seconds
         </Typography>
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
         <TextField
           select
-          label={t('category')}
+          label="Crop"
           value={crop}
           onChange={(e) => setCrop(e.target.value as CropCategory | 'All')}
           sx={{ minWidth: 180 }}
@@ -95,7 +91,7 @@ export default function PesticidePricesPage() {
         <TextField
           fullWidth
           size="small"
-          placeholder={t('pesticide_search_placeholder')}
+          placeholder="Search pesticide name…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -116,11 +112,8 @@ export default function PesticidePricesPage() {
               layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(`/pesticides/${p.id}`)}
               elevation={0}
-              sx={{ p: 2.5, borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'pointer' }}
+              sx={{ p: 2.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
@@ -133,9 +126,6 @@ export default function PesticidePricesPage() {
                       <Chip key={c} size="small" label={c} />
                     ))}
                   </Stack>
-                  <Typography variant="caption" color="primary.main" sx={{ display: 'block', mt: 1 }}>
-                    {t('view_details')} →
-                  </Typography>
                 </Box>
                 <PriceTicker value={p.pricePerUnit} unit={p.unit} />
               </Stack>

@@ -26,7 +26,6 @@ import type { CropCategory } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { getSocket } from '../../lib/socket';
-import { useT } from '../../i18n';
 
 const categories: (CropCategory | 'All')[] = ['All', 'Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
 
@@ -34,7 +33,6 @@ export default function MarketplacePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
-  const t = useT();
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<CropCategory | 'All'>('All');
@@ -89,7 +87,7 @@ export default function MarketplacePage() {
     <Stack spacing={3} sx={{ p: filtersOpen && isMobile ? 3 : 0 }}>
       <TextField
         select
-        label={t('category')}
+        label="Category"
         value={category}
         onChange={(e) => setCategory(e.target.value as CropCategory | 'All')}
         fullWidth
@@ -103,7 +101,7 @@ export default function MarketplacePage() {
       </TextField>
       <Box>
         <Typography variant="body2" gutterBottom color="text.secondary">
-          {t('price_range')}
+          Price range (₹/unit)
         </Typography>
         <Slider
           value={priceRange}
@@ -121,9 +119,9 @@ export default function MarketplacePage() {
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 2, sm: 3 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
         <Box>
-          <Typography variant="h4">{t('home_title')}</Typography>
+          <Typography variant="h4">Marketplace</Typography>
           <Typography variant="body2" color="text.secondary">
-            {total} {t('home_subtitle_suffix')}
+            {total} fresh listings from farmers near you · live updates
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -134,7 +132,7 @@ export default function MarketplacePage() {
             sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', display: 'inline-block' }}
           />
           <Typography variant="caption" color="text.secondary">
-            {t('realtime_active')}
+            Realtime sync active
           </Typography>
         </Stack>
       </Stack>
@@ -143,7 +141,7 @@ export default function MarketplacePage() {
         <TextField
           fullWidth
           size="small"
-          placeholder={t('search_placeholder')}
+          placeholder="Search crops or locations…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -160,7 +158,7 @@ export default function MarketplacePage() {
           <Grid size={{ sm: 3 }}>
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, position: 'sticky', top: 16 }}>
               <Typography variant="subtitle2" sx={{ mb: 2 }}>
-                {t('filters')}
+                Filters
               </Typography>
               {FiltersPanel}
             </Paper>
@@ -189,9 +187,9 @@ export default function MarketplacePage() {
 
           {!isLoading && listings.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h6">{t('no_listings_title')}</Typography>
+              <Typography variant="h6">No crops match these filters</Typography>
               <Typography variant="body2" color="text.secondary">
-                {t('no_listings_body')}
+                Try widening the price range or clearing search.
               </Typography>
             </Box>
           )}
@@ -211,7 +209,7 @@ export default function MarketplacePage() {
 
       <Drawer anchor="bottom" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 3, pt: 2 }}>
-          <Typography variant="subtitle1">{t('filters')}</Typography>
+          <Typography variant="subtitle1">Filters</Typography>
           <IconButton onClick={() => setFiltersOpen(false)}>✕</IconButton>
         </Stack>
         {FiltersPanel}
