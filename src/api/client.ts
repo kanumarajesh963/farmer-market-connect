@@ -36,6 +36,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+// The frontend was upgraded to a multi-photo `images: string[]` field, but
+// this app's live backend (server/) hasn't been redeployed with a matching
+// change yet — it still returns the older single `imageUrl` string. Rather
+// than crash on every listing, normalize whatever shape comes back into the
+// new one. Once the backend adds `images`/`locationUrl`/`sellReason`
+// natively, this keeps working unchanged (it just prefers the new fields).
+type RawListing = Omit<CropListing, 'images'> & { images?: string[]; imageUrl?: string };
+
+function normalizeListing(raw: RawListing): CropListing {
+  const images = raw.images?.length ? raw.images : raw.imageUrl ? [raw.imageUrl] : [];
+  return { ...raw, images };
+}
+
 export interface ListingFilters {
   search?: string;
   category?: CropCategory | 'All';
@@ -64,15 +77,20 @@ function filtersToQuery(filters: ListingFilters, cursor: number, pageSize: numbe
 }
 
 export async function fetchListings(cursor = 0, pageSize = 8, filters: ListingFilters = {}): Promise<ListingPage> {
-  return request(`/api/listings?${filtersToQuery(filters, cursor, pageSize)}`);
+  const page = await request<{ items: RawListing[]; nextCursor: number | null; total: number }>(
+    `/api/listings?${filtersToQuery(filters, cursor, pageSize)}`
+  );
+  return { ...page, items: page.items.map(normalizeListing) };
 }
 
 export async function fetchListingById(id: string): Promise<CropListing | undefined> {
-  return request(`/api/listings/${id}`);
+  const raw = await request<RawListing | undefined>(`/api/listings/${id}`);
+  return raw ? normalizeListing(raw) : undefined;
 }
 
 export async function fetchMyListings(): Promise<CropListing[]> {
-  return request('/api/listings/mine');
+  const raw = await request<RawListing[]>('/api/listings/mine');
+  return raw.map(normalizeListing);
 }
 
 export async function fetchInterests(listingId: string): Promise<BuyerInterest[]> {
@@ -89,11 +107,18 @@ export async function createInterest(listingId: string, message: string): Promis
 export async function createListing(
   payload: Omit<CropListing, 'id' | 'postedAt' | 'interestedCount' | 'farmerName' | 'farmerId'>
 ): Promise<CropListing> {
-  return request('/api/listings', { method: 'POST', body: JSON.stringify(payload) });
+  // Send both the new `images` array and a legacy `imageUrl` (its first
+  // photo) in the same request. An old backend that only knows `imageUrl`
+  // will pick that up and work exactly as before; a backend already
+  // upgraded to store `images` will just ignore the extra field.
+  const body = { ...payload, imageUrl: payload.images[0] };
+  const raw = await request<RawListing>('/api/listings', { method: 'POST', body: JSON.stringify(body) });
+  return normalizeListing(raw);
 }
 
 export async function updateListingStatus(id: string, status: CropListing['status']): Promise<CropListing> {
-  return request(`/api/listings/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  const raw = await request<RawListing>(`/api/listings/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  return normalizeListing(raw);
 }
 
 export async function requestOtp(phone: string): Promise<{ sent: boolean; devOtp?: string }> {
