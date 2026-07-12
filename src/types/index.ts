@@ -1,5 +1,9 @@
 export type UserRole = 'farmer' | 'buyer' | 'mediator' | 'admin';
 
+// Roles a person can choose for themselves at signup. 'admin' is deliberately
+// excluded — it can only ever be granted by an existing admin.
+export const SELECTABLE_ROLES: Exclude<UserRole, 'admin'>[] = ['farmer', 'buyer', 'mediator'];
+
 export interface User {
   id: string;
   name: string;
@@ -46,4 +50,14 @@ export interface BuyerInterest {
   message: string;
   createdAt: string;
   status: 'pending' | 'accepted' | 'rejected';
+}
+
+export interface PesticidePrice {
+  id: string;
+  name: string;
+  cropCategory: CropCategory | 'All';
+  applicableCrops: string[];
+  pricePerUnit: number;
+  unit: string;
+  updatedAt: string;
 }

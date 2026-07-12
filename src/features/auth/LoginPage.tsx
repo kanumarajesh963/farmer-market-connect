@@ -14,6 +14,7 @@ import {
   ToggleButton,
   CircularProgress,
   InputAdornment,
+  Alert,
 } from '@mui/material';
 import SproutIcon from '@mui/icons-material/Grass';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -21,7 +22,7 @@ import LockIcon from '@mui/icons-material/LockOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useRequestOtp, useVerifyOtp } from '../../api/hooks';
 import { useAuthStore } from '../../store/authStore';
-import type { UserRole } from '../../types';
+import { SELECTABLE_ROLES, type UserRole } from '../../types';
 import { toast } from 'sonner';
 
 const phoneSchema = z.object({
@@ -30,7 +31,7 @@ const phoneSchema = z.object({
     .min(10, 'Enter a valid 10-digit mobile number')
     .max(10, 'Enter a valid 10-digit mobile number')
     .regex(/^[6-9]\d{9}$/, 'Enter a valid Indian mobile number'),
-  role: z.enum(['farmer', 'buyer', 'mediator', 'admin']),
+  role: z.enum(['farmer', 'buyer', 'mediator']),
 });
 
 const otpSchema = z.object({
@@ -40,16 +41,16 @@ const otpSchema = z.object({
 type PhoneForm = z.infer<typeof phoneSchema>;
 type OtpForm = z.infer<typeof otpSchema>;
 
-const roles: { value: UserRole; label: string }[] = [
-  { value: 'farmer', label: 'Farmer' },
-  { value: 'buyer', label: 'Buyer' },
-  { value: 'mediator', label: 'Trader' },
-  { value: 'admin', label: 'Admin' },
-];
+const roleLabels: Record<Exclude<UserRole, 'admin'>, string> = {
+  farmer: 'Farmer',
+  buyer: 'Buyer',
+  mediator: 'Trader',
+};
 
 export default function LoginPage() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
+  const [devOtp, setDevOtp] = useState<string | null>(null);
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
 
@@ -69,32 +70,23 @@ export default function LoginPage() {
 
   const onSendOtp = phoneForm.handleSubmit(async (data) => {
     try {
-      await requestOtp.mutateAsync(data.phone);
+      const res = await requestOtp.mutateAsync(data.phone);
       setPhone(data.phone);
+      setDevOtp(res.devOtp ?? null);
       setStep('otp');
       toast.success(`OTP sent to +91 ${data.phone}`);
-    } catch {
-      toast.error('Could not send OTP. Try again.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not send OTP. Try again.');
     }
   });
 
   const onVerify = otpForm.handleSubmit(async (data) => {
     try {
-      const res = await verifyOtp.mutateAsync({ phone, otp: data.otp });
       const role = phoneForm.getValues('role');
-      login(
-        {
-          id: 'current-farmer',
-          name: role === 'farmer' ? 'Ramesh Patil' : 'Guest User',
-          role,
-          phone,
-          location: 'Nashik, MH',
-          avatarColor: '#2E5E3E',
-        },
-        res.token
-      );
-      toast.success('Welcome back!');
-      navigate(role === 'farmer' ? '/dashboard' : '/marketplace');
+      const res = await verifyOtp.mutateAsync({ phone, otp: data.otp, role });
+      login(res.user, res.token);
+      toast.success(`Welcome, ${res.user.name.split(' ')[0]}!`);
+      navigate(res.user.role === 'farmer' || res.user.role === 'admin' ? '/dashboard' : '/marketplace');
     } catch (e) {
       otpForm.setError('otp', { message: e instanceof Error ? e.message : 'Invalid OTP' });
     }
@@ -133,7 +125,7 @@ export default function LoginPage() {
             <Typography variant="h5" fontWeight={700}>
               Farmer Market Connect
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" align="center">
               {step === 'phone' ? 'Sign in with your mobile number' : `Enter the code sent to +91 ${phone}`}
             </Typography>
           </Stack>
@@ -161,14 +153,17 @@ export default function LoginPage() {
                         size="small"
                         onChange={(_, v) => v && field.onChange(v)}
                       >
-                        {roles.map((r) => (
-                          <ToggleButton key={r.value} value={r.value}>
-                            {r.label}
+                        {SELECTABLE_ROLES.map((r) => (
+                          <ToggleButton key={r} value={r}>
+                            {roleLabels[r]}
                           </ToggleButton>
                         ))}
                       </ToggleButtonGroup>
                     )}
                   />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5 }}>
+                    Admin accounts are provisioned separately and can't be self-selected here.
+                  </Typography>
                   <Controller
                     name="phone"
                     control={phoneForm.control}
@@ -203,7 +198,8 @@ export default function LoginPage() {
                     {requestOtp.isPending ? <CircularProgress size={22} color="inherit" /> : 'Send OTP'}
                   </Button>
                   <Typography variant="caption" color="text.secondary" align="center">
-                    New here? Signing in creates your account automatically.
+                    New here? Signing in creates your account automatically. If the number is already
+                    registered, your saved role is used instead of the one selected above.
                   </Typography>
                 </Stack>
               </motion.form>
@@ -218,6 +214,11 @@ export default function LoginPage() {
                 noValidate
               >
                 <Stack spacing={2.5}>
+                  {devOtp && (
+                    <Alert severity="info" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      No SMS gateway is wired up yet — your live OTP is <strong>{devOtp}</strong>.
+                    </Alert>
+                  )}
                   <Controller
                     name="otp"
                     control={otpForm.control}
@@ -225,11 +226,11 @@ export default function LoginPage() {
                       <TextField
                         {...field}
                         label="4-digit OTP"
-                        placeholder="1234"
+                        placeholder="0000"
                         fullWidth
                         autoFocus
                         error={!!fieldState.error}
-                        helperText={fieldState.error?.message ?? 'Demo code: 1234'}
+                        helperText={fieldState.error?.message ?? 'Valid for 5 minutes'}
                         inputProps={{ inputMode: 'numeric', maxLength: 4, style: { letterSpacing: '0.5em', fontSize: 22, textAlign: 'center' } }}
                         InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment> }}
                         onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}

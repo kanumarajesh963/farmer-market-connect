@@ -6,11 +6,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUiStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import type { UserRole } from '../../types';
 
-const navLinks = [
+const navLinks: { to: string; label: string; roles?: UserRole[] }[] = [
   { to: '/marketplace', label: 'Marketplace' },
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/post-crop', label: 'Post crop' },
+  { to: '/dashboard', label: 'Dashboard', roles: ['farmer', 'admin'] },
+  { to: '/post-crop', label: 'Post crop', roles: ['farmer', 'admin'] },
+  { to: '/pesticides', label: 'Pesticide prices' },
+  { to: '/admin', label: 'Admin', roles: ['admin'] },
 ];
 
 export default function Navbar() {
@@ -18,6 +21,8 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const visibleLinks = navLinks.filter((link) => !link.roles || (user && link.roles.includes(user.role)));
 
   return (
     <AppBar
@@ -37,7 +42,7 @@ export default function Navbar() {
         </Stack>
 
         <Stack direction="row" spacing={0.5} sx={{ mr: 2, display: { xs: 'none', md: 'flex' } }}>
-          {navLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Box
               key={link.to}
               onClick={() => navigate(link.to)}
@@ -48,6 +53,7 @@ export default function Navbar() {
                 cursor: 'pointer',
                 fontSize: 14,
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
                 color: location.pathname === link.to ? 'primary.main' : 'text.secondary',
                 bgcolor: location.pathname === link.to ? 'action.selected' : 'transparent',
                 '&:hover': { bgcolor: 'action.hover' },

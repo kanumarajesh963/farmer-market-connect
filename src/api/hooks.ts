@@ -1,13 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from './client';
-import type { CropListing } from '../types';
+import type { CropListing, User } from '../types';
 import { toast } from 'sonner';
 
 export const qk = {
   listings: (filters: api.ListingFilters) => ['listings', filters] as const,
   listing: (id: string) => ['listing', id] as const,
-  myListings: (farmerId: string) => ['myListings', farmerId] as const,
+  myListings: ['myListings'] as const,
   interests: (listingId: string) => ['interests', listingId] as const,
+  users: ['admin-users'] as const,
+  pesticides: (crop?: string) => ['pesticides', crop ?? 'All'] as const,
 };
 
 export function useListingsInfinite(filters: api.ListingFilters) {
@@ -23,8 +25,8 @@ export function useListing(id: string) {
   return useQuery({ queryKey: qk.listing(id), queryFn: () => api.fetchListingById(id), enabled: !!id });
 }
 
-export function useMyListings(farmerId: string) {
-  return useQuery({ queryKey: qk.myListings(farmerId), queryFn: () => api.fetchMyListings(farmerId) });
+export function useMyListings(enabled: boolean) {
+  return useQuery({ queryKey: qk.myListings, queryFn: () => api.fetchMyListings(), enabled });
 }
 
 export function useInterests(listingId: string) {
@@ -37,10 +39,10 @@ export function useCreateListing() {
     mutationFn: api.createListing,
     onSuccess: (newListing) => {
       qc.invalidateQueries({ queryKey: ['listings'] });
-      qc.invalidateQueries({ queryKey: qk.myListings('current-farmer') });
+      qc.invalidateQueries({ queryKey: qk.myListings });
       toast.success(`${newListing.cropName} listed successfully`);
     },
-    onError: () => toast.error('Could not create listing. Please try again.'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not create listing.'),
   });
 }
 
@@ -48,7 +50,6 @@ export function useUpdateListingStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: CropListing['status'] }) => api.updateListingStatus(id, status),
-    // Optimistic update
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ['listings'] });
       const previous = qc.getQueriesData({ queryKey: ['listings'] });
@@ -65,12 +66,28 @@ export function useUpdateListingStatus() {
       });
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       context?.previous.forEach(([key, data]) => qc.setQueryData(key, data));
-      toast.error('Could not update status');
+      toast.error(err instanceof Error ? err.message : 'Could not update status');
     },
     onSuccess: (_data, vars) => toast.success(`Marked as ${vars.status}`),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['listings'] }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['listings'] });
+      qc.invalidateQueries({ queryKey: qk.myListings });
+    },
+  });
+}
+
+export function useCreateInterest(listingId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (message: string) => api.createInterest(listingId, message),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.interests(listingId) });
+      qc.invalidateQueries({ queryKey: qk.listing(listingId) });
+      toast.success('Interest sent to the farmer');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not send interest.'),
   });
 }
 
@@ -79,5 +96,30 @@ export function useRequestOtp() {
 }
 
 export function useVerifyOtp() {
-  return useMutation({ mutationFn: ({ phone, otp }: { phone: string; otp: string }) => api.verifyOtp(phone, otp) });
+  return useMutation({
+    mutationFn: ({ phone, otp, role, name }: { phone: string; otp: string; role: string; name?: string }) =>
+      api.verifyOtp(phone, otp, role, name),
+  });
+}
+
+// ---- Admin ----
+export function useAllUsers(enabled: boolean) {
+  return useQuery({ queryKey: qk.users, queryFn: api.fetchAllUsers, enabled });
+}
+
+export function usePromoteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: User['role'] }) => api.updateUserRole(id, role),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: qk.users });
+      toast.success(`${user.name} is now ${user.role}`);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not update role.'),
+  });
+}
+
+// ---- Pesticide prices ----
+export function usePesticidePrices(crop?: string) {
+  return useQuery({ queryKey: qk.pesticides(crop), queryFn: () => api.fetchPesticidePrices(crop) });
 }

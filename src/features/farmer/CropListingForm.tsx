@@ -28,11 +28,19 @@ import { useCreateListing } from '../../api/hooks';
 import type { CropCategory, QuantityUnit } from '../../types';
 
 const categories: CropCategory[] = ['Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
-const sampleImages = [
-  'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?w=400&q=80',
-  'https://images.unsplash.com/photo-1518843875459-f738682238a6?w=400&q=80',
-  'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400&q=80',
-];
+
+// Sample photo keywords per category so the picker always shows images that
+// actually match what's being listed, instead of 3 fixed unrelated photos.
+const categoryKeywords: Record<CropCategory, string[]> = {
+  Vegetables: ['vegetables', 'fresh-vegetables', 'farm-vegetables'],
+  Fruits: ['fruits', 'fresh-fruits', 'orchard'],
+  Grains: ['grains', 'wheat-field', 'rice-paddy'],
+  Pulses: ['lentils', 'pulses', 'legumes'],
+  Spices: ['spices', 'indian-spices', 'chilli'],
+  Oilseeds: ['peanut', 'sunflower', 'oilseeds'],
+};
+const sampleImagesFor = (category: CropCategory) =>
+  categoryKeywords[category].map((kw) => `https://loremflickr.com/400/400/${kw}?lock=${kw.length + category.length}`);
 
 const schema = z.object({
   cropName: z.string().min(2, 'Enter the crop name'),
@@ -237,7 +245,7 @@ export default function CropListingForm() {
                         Choose a sample photo (demo — uploads connect to Cloudinary in production)
                       </Typography>
                       <Stack direction="row" spacing={1.5}>
-                        {sampleImages.map((img) => (
+                        {sampleImagesFor(values.category).map((img) => (
                           <Box
                             key={img}
                             component={motion.div}

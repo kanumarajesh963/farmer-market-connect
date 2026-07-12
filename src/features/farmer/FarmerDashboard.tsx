@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
@@ -20,10 +20,14 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import { motion } from 'framer-motion';
-import { useMyListings, useUpdateListingStatus } from '../../api/hooks';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMyListings, useUpdateListingStatus, qk } from '../../api/hooks';
 import StatusStamp from '../../components/ui/StatusStamp';
 import { useNavigate } from 'react-router-dom';
-import type { CropListing, ListingStatus } from '../../types';
+import { useAuthStore } from '../../store/authStore';
+import { getSocket } from '../../lib/socket';
+import type { CropListing, ListingStatus, BuyerInterest } from '../../types';
 
 const statOptions: ListingStatus[] = ['available', 'reserved', 'sold'];
 
@@ -48,11 +52,28 @@ function StatCard({ label, value, delay }: { label: string; value: string | numb
 }
 
 export default function FarmerDashboard() {
-  const { data: listings, isLoading } = useMyListings('current-farmer');
+  const { user, token } = useAuthStore();
+  const { data: listings, isLoading } = useMyListings(!!user);
   const updateStatus = useUpdateListingStatus();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeListing, setActiveListing] = useState<CropListing | null>(null);
+
+  // Realtime: get notified the instant a buyer expresses interest in one of
+  // this farmer's crops, without refreshing the page.
+  useEffect(() => {
+    if (!user) return;
+    const socket = getSocket(token);
+    const onInterest = (interest: BuyerInterest) => {
+      toast.info(`${interest.buyerName} is interested: “${interest.message.slice(0, 60)}”`);
+      qc.invalidateQueries({ queryKey: qk.myListings });
+    };
+    socket.on('interest:new', onInterest);
+    return () => {
+      socket.off('interest:new', onInterest);
+    };
+  }, [user, token, qc]);
 
   const openMenu = (e: React.MouseEvent<Element>, listing: CropListing) => {
     setMenuAnchor(e.currentTarget as HTMLElement);

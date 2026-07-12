@@ -18,11 +18,14 @@ import { useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/TuneRounded';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useListingsInfinite } from '../../api/hooks';
 import CropCard from './CropCard';
 import CardSkeleton from '../../components/ui/CardSkeleton';
 import type { CropCategory } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+import { getSocket } from '../../lib/socket';
 
 const categories: (CropCategory | 'All')[] = ['All', 'Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
 
@@ -48,6 +51,21 @@ export default function MarketplacePage() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useListingsInfinite(filters);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+  const token = useAuthStore((s) => s.token);
+
+  // Realtime: new listings and status changes from any farmer land here
+  // instantly, so the marketplace never shows stale stock.
+  useEffect(() => {
+    const socket = getSocket(token);
+    const refresh = () => qc.invalidateQueries({ queryKey: ['listings'] });
+    socket.on('listing:new', refresh);
+    socket.on('listing:updated', refresh);
+    return () => {
+      socket.off('listing:new', refresh);
+      socket.off('listing:updated', refresh);
+    };
+  }, [token, qc]);
 
   useEffect(() => {
     const el = sentinelRef.current;

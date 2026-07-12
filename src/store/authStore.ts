@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, UserRole } from '../types';
+import type { User } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -8,7 +8,9 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
+  // Applied when the server tells us (via socket 'role:changed') that an
+  // admin changed this person's role — never settable by the user directly.
+  applyServerRoleChange: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -19,7 +21,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
-      switchRole: (role) => set((s) => (s.user ? { user: { ...s.user, role } } : s)),
+      applyServerRoleChange: (user) => set({ user }),
     }),
     { name: 'fmc-auth' }
   )

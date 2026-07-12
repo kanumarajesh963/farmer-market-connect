@@ -15,12 +15,13 @@ import {
   Divider,
   Skeleton,
   Chip,
+  Alert,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackIosNew';
-import { useListing, useInterests } from '../../api/hooks';
+import { useListing, useInterests, useCreateInterest } from '../../api/hooks';
 import StatusStamp from '../../components/ui/StatusStamp';
 import PriceTicker from '../../components/ui/PriceTicker';
-import { toast } from 'sonner';
+import { useAuthStore } from '../../store/authStore';
 
 const interestSchema = z.object({
   message: z.string().min(5, 'Say a little about what you need'),
@@ -32,14 +33,17 @@ export default function ListingDetailPage() {
   const navigate = useNavigate();
   const { data: listing, isLoading } = useListing(id);
   const { data: interests } = useInterests(id);
+  const { user } = useAuthStore();
+  const canExpressInterest = user?.role === 'buyer' || user?.role === 'mediator';
+  const createInterest = useCreateInterest(id);
 
   const { control, handleSubmit, reset } = useForm<InterestForm>({
     resolver: zodResolver(interestSchema),
     defaultValues: { message: '' },
   });
 
-  const onSubmit = handleSubmit(() => {
-    toast.success('Interest sent to the farmer');
+  const onSubmit = handleSubmit(async (data) => {
+    await createInterest.mutateAsync(data.message);
     reset();
   });
 
@@ -111,24 +115,34 @@ export default function ListingDetailPage() {
             <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
               Express interest
             </Typography>
-            <Controller
-              name="message"
-              control={control}
-              render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  placeholder="I'm interested in 200kg — can you share the quality grade?"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
+            {canExpressInterest ? (
+              <>
+                <Controller
+                  name="message"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      placeholder="I'm interested in 200kg — can you share the quality grade?"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Button type="submit" variant="contained" sx={{ mt: 1.5 }}>
-              Send to farmer
-            </Button>
+                <Button type="submit" variant="contained" sx={{ mt: 1.5 }} disabled={createInterest.isPending}>
+                  {createInterest.isPending ? 'Sending…' : 'Send to farmer'}
+                </Button>
+              </>
+            ) : (
+              <Alert severity="info">
+                {user?.role === 'farmer' || user?.role === 'admin'
+                  ? 'Only buyers and traders can express interest in a listing.'
+                  : 'Sign in as a buyer or trader to express interest.'}
+              </Alert>
+            )}
           </Paper>
         </Grid>
 
@@ -156,6 +170,9 @@ export default function ListingDetailPage() {
                   </Box>
                 </Stack>
               ))}
+              {interests?.length === 0 && (
+                <Typography variant="body2" color="text.secondary">No buyers yet — be the first to reach out.</Typography>
+              )}
             </Stack>
           </Paper>
         </Grid>
