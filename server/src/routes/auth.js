@@ -28,7 +28,9 @@ router.post('/request-otp', async (req, res) => {
     // Only ever echo the code back when it wasn't actually delivered by SMS,
     // and never in production — keeps prod secure once a real key is set,
     // while still letting you test before you have one.
-    ...(process.env.NODE_ENV !== 'production' && !result.delivered ? { devOtp: otp } : {}),
+    ...(process.env.SHOW_OTP_ON_SCREEN === 'true' || (process.env.NODE_ENV !== 'production' && !result.delivered)
+      ? { devOtp: otp }
+      : {}),
   });
 });
 
