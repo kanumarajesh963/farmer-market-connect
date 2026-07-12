@@ -25,6 +25,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
 import { useCreateListing } from '../../api/hooks';
+import { categoryPlaceholder } from '../../lib/placeholderImage';
 import type { CropCategory, QuantityUnit } from '../../types';
 
 const categories: CropCategory[] = ['Vegetables', 'Fruits', 'Grains', 'Pulses', 'Spices', 'Oilseeds'];
@@ -32,13 +33,14 @@ const categories: CropCategory[] = ['Vegetables', 'Fruits', 'Grains', 'Pulses', 
 const MAX_IMAGES = 8;
 const MAX_UPLOAD_BYTES = 6 * 1024 * 1024; // 6MB raw file limit before we even try to read it
 
-// Suggests a photo keyed off the actual crop name typed in (e.g. "Alphonso
-// Mangoes"), not just its broad category, so the suggestion actually looks
-// like the product. Falls back to the category if the name is too short.
+// Suggests a stand-in photo keyed off the crop name/category, used only until
+// the farmer uploads a real picture. This used to call loremflickr.com with
+// the crop name as a search keyword, which pulls a random tagged photo from
+// all of Flickr — unpredictable, occasionally unrelated, and occasionally
+// outright inappropriate. Generating the placeholder locally guarantees it's
+// always safe and always on-topic.
 function suggestedImageFor(cropName: string, category: CropCategory): string {
-  const slug = cropName.trim().length >= 3 ? cropName.trim() : category;
-  const kw = encodeURIComponent(slug.toLowerCase().replace(/\s+/g, '-'));
-  return `https://loremflickr.com/500/500/${kw}?lock=${slug.length + category.length}`;
+  return categoryPlaceholder(cropName, category);
 }
 
 // Reads a photo straight from the farmer's device (camera roll or camera),
