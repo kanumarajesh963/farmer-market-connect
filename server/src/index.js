@@ -10,7 +10,6 @@ import listingRoutes from './routes/listings.js';
 import userRoutes from './routes/users.js';
 import pesticideRoutes from './routes/pesticides.js';
 import { startPesticideSimulator } from './pesticideSimulator.js';
-
 const app = express();
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',').map((s) => s.trim());
 
